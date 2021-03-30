@@ -1,5 +1,5 @@
 from flask import Flask
-from flask_restful import Resource, Api, reqparse, abort,fields, marshal_with
+from flask_restful import Resource, Api, reqparse, abort, fields, marshal_with
 from flask_sqlalchemy import SQLAlchemy
 
 
@@ -8,111 +8,81 @@ api = Api(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///sqlite.db'
 db = SQLAlchemy(app)
 
-class employeeModel(db.Model):
-    id = db.Column(db.Integer,primary_key=True)
-    firstName = db.Column(db.String(200))
-    lastName = db.Column(db.String(200))
-    mobileNumber = db.Column(db.Integer)
 
-#UNCOMMENT BELOW LINES IF YOU'RE RUNNING THIS FILE FOR THE 1ST TIME
+class TodoModel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    task = db.Column(db.String(200))
+    summary = db.Column(db.String(500))
 
-#db.create_all()
 
-# employees = {
-#     1: {'firstName':'Chandramohan Reddy','lastName':'Poreddy','mobileNumber':'0928316907'},
-#         2: {'firstName':'BalKrishna','lastName':'Vodiboina','mobileNumber':'8862213283'},
-#         3: {'firstName':'Arjun Singh','lastName':'Gogineni','mobileNumber':'7867879898'}
-# }
+# db.create_all()
 
-insert_employee_details = reqparse.RequestParser()
+task_post_args = reqparse.RequestParser()
+task_post_args.add_argument("task", type=str, help="Task is requried", required=True)
+task_post_args.add_argument("summary", type=str, help="Summary is required", required=True)
 
-insert_employee_details.add_argument("firstName", type=str, help="First Name is required", required = True)
-insert_employee_details.add_argument("lastName", type=str, help="Last Name is required", required = True)
-insert_employee_details.add_argument("mobileNumber", type=int, help="Mobile Number is required", required = True)
+task_update_args = reqparse.RequestParser()
+task_update_args.add_argument("task", type=str)
+task_update_args.add_argument("summary", type=str)
 
-update_employee_details = reqparse.RequestParser()
-
-update_employee_details.add_argument("firstName", type=str)
-update_employee_details.add_argument("lastName", type=str)
-update_employee_details.add_argument("mobileNumber", type=int)
 
 resource_fields = {
-    'id' : fields.Integer,
-    'firstName' : fields.String,
-    'lastName' : fields.String,
-    'mobileNumber' : fields.Integer
+    'id': fields.Integer,
+    'task': fields.String,
+    'summary': fields.String,
 }
 
-class employee(Resource):
 
-    #RETRIEVING DATA FROM DATABASE
-    @marshal_with(resource_fields)
-    def get(self,id):
-        employee = employeeModel.query.filter_by(id=id).first()
-        if not employee:
-            abort(409, message="Employee not found with ID")
-
-        return employee
-
-    #INSERTING DATA INTO DATABASE
-    @marshal_with(resource_fields)
-    def post(self,id):
-        employee_details = insert_employee_details.parse_args()
-        employee = employeeModel.query.filter_by(id=id).first()
-        if employee:
-            abort(409,"Employee ID already taken, Please change the ID")
-        employee = employeeModel(id=id,firstName=employee_details['firstName'],lastName=employee_details['lastName'],mobileNumber=employee_details['mobileNumber'])
-        db.session.add(employee)
-        db.session.commit()
-        return employee, 201
-
-
-        # if id in employees:
-        #     abort(409,"Employee ID already taken, Please change the ID")
-        # employees[id] = {"firstName":employee_details["firstName"],"lastName":employee_details["lastName"],"mobileNumber":employee_details["mobileNumber"]}
-        # return employees[id]
-
-
-    #UPDATING DATA IN THE DATABASE
-    @marshal_with(resource_fields)
-    def put(self,id):
-        employee_details = update_employee_details.parse_args()
-        employee = employeeModel.query.filter_by(id=id).first()
-        if not employee:
-            abort(404, message="Employee doesn't exist, Cannot update")
-        if employee_details['firstName']:
-            employee.firstName = employee_details['firstName']
-        if employee_details['lastName']:
-            employee.lastName = employee_details['lastName']
-        if employee_details['mobileNumber']:
-            employee.mobileNumber = employee_details['mobileNumber']
-        db.session.commit()
-        return employee
-            
-
-            
-
-    #DELETING DATA FROM DATABASE
-    def delete(self,id):
-        employee = employeeModel.query.filter_by(id=id).first()
-        db.session.delete(employee)
-        db.session.commit()
-        return 'Employee Deleted', 204
-
-
-
-class employeeList(Resource):
+class ToDoList(Resource):
     def get(self):
-        employees = employeeModel.query.all()
-        employeees = {}
-        for employee in employees:
-            employeees[employee.id] = {"firstName": employee.firstName, "lastName": employee.lastName, "mobileNumber": employee.mobileNumber}
-        return employeees
+        tasks = TodoModel.query.all()
+        todos = {}
+        for task in tasks:
+            todos[task.id] = {"task": task.task, "summary": task.summary}
+        return todos
 
 
+class ToDo(Resource):
+    @marshal_with(resource_fields)
+    def get(self, todo_id):
+        task = TodoModel.query.filter_by(id=todo_id).first()
+        if not task:
+            abort(404, message="Could not find task with that id")
+        return task
 
-api.add_resource(employee,'/employees/<int:id>')
-api.add_resource(employeeList,'/employees')
+    @marshal_with(resource_fields)
+    def post(self, todo_id):
+        args = task_post_args.parse_args()
+        task = TodoModel.query.filter_by(id=todo_id).first()
+        if task:
+            abort(409, message="task id taken...")
 
-if __name__ == '__main__':
+        todo = TodoModel(id=todo_id, task=args['task'], summary=args['summary'])
+        db.session.add(todo)
+        db.session.commit()
+        return todo, 201
+
+    @marshal_with(resource_fields)
+    def put(self, todo_id):
+        args = task_update_args.parse_args()
+        task = TodoModel.query.filter_by(id=todo_id).first()
+        if not task:
+            abort(404, message="task doesn't exist, cannot update")
+        if args['task']:
+            task.task = args['task']
+        if args['summary']:
+            task.summary = args['summary']
+        db.session.commit()
+        return task
+
+    def delete(self, todo_id):
+        task = TodoModel.query.filter_by(id=todo_id).first()
+        db.session.delete(task)
+        return 'Todo Deleted', 204
+
+
+api.add_resource(ToDo, '/todos/<int:todo_id>')
+api.add_resource(ToDoList, '/todos')
+
+if __name__ == "__main__":
     app.run(debug=True)

@@ -1,1 +1,1 @@
-# rest-flask
+# flask-rest

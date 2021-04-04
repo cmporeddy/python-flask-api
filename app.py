@@ -18,18 +18,18 @@ class TodoModel(db.Model):
 # db.create_all()
 
 task_post_args = reqparse.RequestParser()
-task_post_args.add_argument("humidity", type=str, help="Humidity is requried", required=True)
-task_post_args.add_argument("temperature", type=str, help="Temperature is required", required=True)
+task_post_args.add_argument("task", type=str, help="Task is requried", required=True)
+task_post_args.add_argument("summary", type=str, help="Summary is required", required=True)
 
 task_update_args = reqparse.RequestParser()
-task_update_args.add_argument("humidity", type=str)
-task_update_args.add_argument("temperature", type=str)
+task_update_args.add_argument("task", type=str)
+task_update_args.add_argument("summary", type=str)
 
 
 resource_fields = {
     'id': fields.Integer,
-    'humidity': fields.String,
-    'temperature': fields.String,
+    'task': fields.String,
+    'summary': fields.String,
 }
 
 
@@ -38,7 +38,7 @@ class ToDoList(Resource):
         tasks = TodoModel.query.all()
         todos = {}
         for task in tasks:
-            todos[task.id] = {"humidity": task.humidity, "temperature": task.temperature}
+            todos[task.id] = {"task": task.task, "summary": task.summary}
         return todos
 
 
@@ -57,7 +57,7 @@ class ToDo(Resource):
         if task:
             abort(409, message="task id taken...")
 
-        todo = TodoModel(id=todo_id, task=args['humidity'], summary=args['temperature'])
+        todo = TodoModel(id=todo_id, task=args['task'], summary=args['summary'])
         db.session.add(todo)
         db.session.commit()
         return todo, 201
@@ -69,9 +69,9 @@ class ToDo(Resource):
         if not task:
             abort(404, message="task doesn't exist, cannot update")
         if args['task']:
-            task.task = args['humidity']
+            task.task = args['task']
         if args['summary']:
-            task.summary = args['temperature']
+            task.summary = args['summary']
         db.session.commit()
         return task
 
@@ -86,7 +86,3 @@ api.add_resource(ToDoList, '/todos')
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-
-
-

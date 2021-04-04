@@ -15,7 +15,7 @@ class TodoModel(db.Model):
     summary = db.Column(db.String(500))
 
 
-db.create_all()
+# db.create_all()
 
 task_post_args = reqparse.RequestParser()
 task_post_args.add_argument("task", type=str, help="Task is requried", required=True)
